@@ -530,7 +530,8 @@ function render(){
   // liquidez = capital inicial - invertido en abiertas + lo ganado en cerradas
   const invAbiertas=abiertas.reduce((s,p)=>s+p.totalInvertido,0);
   const liquidez=INITIAL_CAPITAL-invAbiertas+gananciaRealizada;
-  const liqPct=(liquidez/INITIAL_CAPITAL)*100;
+  const baseCapital=INITIAL_CAPITAL+gananciaRealizada;
+  const liqPct=(liquidez/baseCapital)*100;
 
   document.getElementById('tfoot').innerHTML=`<tr>
     <td colspan="5"><span class="total-label">TOTALES</span></td>
