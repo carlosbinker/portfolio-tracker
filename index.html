@@ -517,15 +517,18 @@ function render(){
   // tfoot
   const all=positions.map(calcPos);
   const totInv=all.reduce((s,p)=>s+p.totalInvertido,0);
-  const totPnL=all.reduce((s,p)=>s+p.pnlUSD,0);
   const abiertas=all.filter(p=>p.estado==='abierta');
   const cerradas=all.filter(p=>p.estado==='cerrada');
   const totValor=abiertas.reduce((s,p)=>s+p.valorTotal,0);
 
+  // PnL Total = solo posiciones abiertas
+  const totPnL=abiertas.reduce((s,p)=>s+p.pnlUSD,0);
+
   // ganancia realizada: solo posiciones cerradas, usando precio de venta
   const gananciaRealizada=cerradas.reduce((s,p)=>s+p.pnlUSD,0);
   const invCerradas=cerradas.reduce((s,p)=>s+p.totalInvertido,0);
-  const gananciaRzPct=invCerradas>0?(gananciaRealizada/invCerradas)*100:0;
+  // % ganancia = ganancias / (capital inicial + ganancias)
+  const gananciaRzPct=(INITIAL_CAPITAL+gananciaRealizada)>0?(gananciaRealizada/(INITIAL_CAPITAL+gananciaRealizada))*100:0;
 
   // liquidez = capital inicial - invertido en abiertas + lo ganado en cerradas
   const invAbiertas=abiertas.reduce((s,p)=>s+p.totalInvertido,0);
@@ -542,13 +545,22 @@ function render(){
     <td colspan="2"></td></tr>`;
 
   // ── KPI cards ──
+  // PnL Total = solo posiciones abiertas (no realizado)
+  const pnlAbiertas = abiertas.reduce((s,p)=>s+p.pnlUSD,0);
+  const invAbiertasTot = abiertas.reduce((s,p)=>s+p.totalInvertido,0);
+  // % Ganancia = gananciaRealizada / (capital inicial + gananciaRealizada)
+  const gananciaRzPctCorr = (INITIAL_CAPITAL+gananciaRealizada)>0
+    ? (gananciaRealizada/(INITIAL_CAPITAL+gananciaRealizada))*100 : 0;
+  // Portfolio Total = capital inicial + PnL abiertas
+  const portfolioTotal = INITIAL_CAPITAL + pnlAbiertas;
+
   const grC = gananciaRealizada>=0?'positive':'negative';
-  const pnlTotC = totPnL>=0?'positive':'negative';
+  const pnlTotC = pnlAbiertas>=0?'positive':'negative';
   const kpiSimples=[
     {l:'Capital Inicial',  v:fmt$(INITIAL_CAPITAL), c:'neutral', s:'Base de referencia'},
     {l:'Invertido Activo', v:fmt$(invAbiertas),      c:'info',    s:`${abiertas.length} posic. abiertas`},
     {l:'Liquidez',         v:fmtPct(liqPct),         c:liqPct>=50?'positive':'warn', s:fmt$(liquidez)},
-    {l:'Portfolio Total',  v:fmt$(liquidez+totValor),c:'info',    s:'Liquidez + activos'},
+    {l:'Portfolio Total',  v:fmt$(portfolioTotal),   c:'info',    s:'Capital inicial + PnL'},
   ];
 
   document.getElementById('kpi-grid').innerHTML =
@@ -561,16 +573,16 @@ function render(){
     + `<div class="kpi ${pnlTotC}">
         <div class="kpi-label">PnL Total</div>
         <div class="kpi-value-row">
-          <span class="kpi-value ${pnlTotC}">${(totPnL>=0?'+':'')+fmt$(totPnL)}</span>
-          <span class="kpi-pct ${pnlTotC}">${totInv>0?fmtPct(totPnL/totInv*100):''}</span>
+          <span class="kpi-value ${pnlTotC}">${(pnlAbiertas>=0?'+':'')+fmt$(pnlAbiertas)}</span>
+          <span class="kpi-pct ${pnlTotC}">${invAbiertasTot>0?fmtPct(pnlAbiertas/invAbiertasTot*100):''}</span>
         </div>
-        <div class="kpi-sub">Abiertas + cerradas</div>
+        <div class="kpi-sub">Solo posiciones abiertas</div>
       </div>`
     + `<div class="kpi ${grC}">
         <div class="kpi-label">Ganancia</div>
         <div class="kpi-value-row">
           <span class="kpi-value ${grC}">${(gananciaRealizada>=0?'+':'')+fmt$(gananciaRealizada)}</span>
-          <span class="kpi-pct ${grC}">${invCerradas>0?fmtPct(gananciaRzPct):''}</span>
+          <span class="kpi-pct ${grC}">${fmtPct(gananciaRzPctCorr)}</span>
         </div>
         <div class="kpi-sub">${cerradas.length} pos. cerrada${cerradas.length!==1?'s':''} · ${fmt$(invCerradas)}</div>
       </div>`;
