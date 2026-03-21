@@ -574,7 +574,7 @@ function render(){
     + `<div class="kpi ${pnlTotC}">
         <div class="kpi-label">PnL Total</div>
         <div class="kpi-value-row">
-          <span class="kpi-value ${pnlTotC}">${(pnlAbiertas>=0?'+':'')+fmt$(pnlAbiertas)}</span>
+          <span class="kpi-value ${pnlTotC}">${(pnlAbiertas>=0?'+':'-')+fmt$(pnlAbiertas)}</span>
           <span class="kpi-pct ${pnlTotC}">${invAbiertasTot>0?fmtPct(pnlAbiertas/invAbiertasTot*100):''}</span>
         </div>
         <div class="kpi-sub">Solo posiciones abiertas</div>
@@ -582,7 +582,7 @@ function render(){
     + `<div class="kpi ${grC}">
         <div class="kpi-label">Ganancia</div>
         <div class="kpi-value-row">
-          <span class="kpi-value ${grC}">${(gananciaRealizada>=0?'+':'')+fmt$(gananciaRealizada)}</span>
+          <span class="kpi-value ${grC}">${(gananciaRealizada>=0?'+':'-')+fmt$(gananciaRealizada)}</span>
           <span class="kpi-pct ${grC}">${fmtPct(gananciaRzPctCorr)}</span>
         </div>
         <div class="kpi-sub">${cerradas.length} pos. cerrada${cerradas.length!==1?'s':''} · ${fmt$(invCerradas)}</div>
