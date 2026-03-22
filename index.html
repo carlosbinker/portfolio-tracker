@@ -410,7 +410,8 @@ let filterState='todas', sortField=null, sortAsc=true, editingId=null;
 let expanded = new Set();
 let authTab = 'login';
 let authToken = localStorage.getItem('pt_token');
-let authUser  = JSON.parse(localStorage.getItem('pt_user') || 'null');
+let authUser = null;
+try { authUser = JSON.parse(localStorage.getItem('pt_user') || 'null'); } catch(e) { localStorage.removeItem('pt_user'); }
 
 // ── Auth ──
 function switchTab(tab) {
