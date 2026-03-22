@@ -1081,22 +1081,7 @@ async function saveAlias() {
   }
 }
 
-async function sendPasswordReset() {
-  const email = authUser?.email || JSON.parse(localStorage.getItem('pt_user')||'{}')?.email;
-  const msg = document.getElementById('reset-msg');
-  msg.textContent = ''; msg.className = 'profile-msg';
-  if (!email) { msg.textContent = 'No se encontró el email'; msg.className = 'profile-msg err'; return; }
-  try {
-    await fetch('/api/profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'reset-password', email })
-    });
-    msg.textContent = `✓ Email enviado a ${email}`; msg.className = 'profile-msg ok';
-  } catch(e) {
-    msg.textContent = 'Error de conexión'; msg.className = 'profile-msg err';
-  }
-}
+
 
 function showForgotPassword() {
   document.getElementById('auth-overlay').style.display = 'none';
