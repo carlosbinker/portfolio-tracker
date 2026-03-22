@@ -269,16 +269,16 @@
   /* ── PROFILE MODAL ── */
   .profile-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.78);display:flex;align-items:center;justify-content:center;z-index:1500;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity 0.2s;}
   .profile-overlay.open{opacity:1;pointer-events:all;}
-  .profile-box{background:var(--surface);border:1px solid var(--border2);width:420px;max-width:94vw;}
-  .profile-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);}
-  .profile-title{font-family:var(--sans);font-size:15px;font-weight:600;color:var(--text-hi);}
-  .profile-body{padding:24px;display:flex;flex-direction:column;gap:18px;}
-  .profile-section{display:flex;flex-direction:column;gap:8px;}
-  .profile-section label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);}
-  .profile-section input{width:100%;}
-  .profile-msg{font-size:11px;min-height:16px;margin-top:4px;}
+  .profile-box{background:var(--surface);border:2px solid var(--yellow);width:420px;max-width:94vw;box-shadow:0 0 30px rgba(232,184,75,0.15);}
+  .profile-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid rgba(232,184,75,0.2);background:rgba(232,184,75,0.05);}
+  .profile-title{font-family:var(--sans);font-size:15px;font-weight:700;color:var(--yellow);letter-spacing:0.06em;text-transform:uppercase;}
+  .profile-body{padding:28px 24px;display:flex;flex-direction:column;gap:18px;}
+  .profile-section{display:flex;flex-direction:column;gap:10px;}
+  .profile-section label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#e8a030;font-weight:600;}
+  .profile-section input{width:100%;border-color:rgba(232,184,75,0.3);font-size:13px;padding:11px 14px;}
+  .profile-section input:focus{border-color:var(--yellow);}
+  .profile-msg{font-size:11px;min-height:16px;margin-top:4px;font-weight:500;}
   .profile-msg.ok{color:var(--green);} .profile-msg.err{color:var(--red);}
-  .profile-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
 
   /* ── AUTH ── */
   .auth-overlay { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:2000; }
@@ -396,16 +396,10 @@
     </div>
     <div class="profile-body">
       <div class="profile-section">
-        <label>Alias / Nombre</label>
+        <label>Alias / Nombre visible</label>
         <input type="text" id="profile-alias" placeholder="Tu nombre o alias">
         <div class="profile-msg" id="alias-msg"></div>
-        <button class="btn primary" onclick="saveAlias()" style="margin-top:4px;">Guardar Alias</button>
-      </div>
-      <div class="profile-section" style="border-top:1px solid var(--border);padding-top:18px;">
-        <label>Cambiar Contraseña</label>
-        <p style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">Te enviaremos un email con el enlace para cambiar tu contraseña.</p>
-        <button class="btn" onclick="sendPasswordReset()" style="width:100%;">Enviar email de recuperación</button>
-        <div class="profile-msg" id="reset-msg"></div>
+        <button class="btn primary" onclick="saveAlias()" style="margin-top:8px;width:100%;">Guardar</button>
       </div>
     </div>
   </div>
