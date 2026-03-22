@@ -20,7 +20,12 @@ export default async function handler(req, res) {
       body: JSON.stringify({ email, password })
     });
     const data = await r.json();
-    if (data.error) return res.status(400).json({ error: data.error.message || data.msg });
+    if (data.error || data.error_code) {
+      return res.status(400).json({ error: 'El email ya está registrado o es inválido' });
+    }
+    if (!data.access_token) {
+      return res.status(400).json({ error: 'No se pudo completar el registro' });
+    }
     return res.status(200).json({ user: data.user, token: data.access_token });
   }
 
