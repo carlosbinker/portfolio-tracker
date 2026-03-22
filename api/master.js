@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
   // Traer sus posiciones
   const posRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/positions?user_id=eq.${coordinator.id}&order=created_at.asc`,
+    `${SUPABASE_URL}/rest/v1/positions?user_id=eq.${coordinator.id}&tipo=eq.reto&order=created_at.asc`,
     { headers }
   );
   const positions = await posRes.json();

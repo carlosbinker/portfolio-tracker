@@ -20,18 +20,17 @@ export default async function handler(req, res) {
   const base = `${SUPABASE_URL}/rest/v1/positions`;
 
   if (req.method === 'GET') {
-    const r = await fetch(`${base}?order=created_at.asc`, { headers });
+    const r = await fetch(`${base}?order=created_at.asc&tipo=eq.personal`, { headers });
     return res.status(200).json(await r.json());
   }
 
   if (req.method === 'POST') {
-    // Get user id from JWT first
     const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${token}` }
     });
     const userData = await userRes.json();
     if (!userData.id) return res.status(401).json({ error: 'Token inválido' });
-    const body = { ...req.body, user_id: userData.id };
+    const body = { ...req.body, user_id: userData.id, tipo: 'personal' };
     const r = await fetch(base, { method: 'POST', headers, body: JSON.stringify(body) });
     return res.status(201).json(await r.json());
   }

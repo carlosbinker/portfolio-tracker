@@ -48,12 +48,12 @@ export default async function handler(req, res) {
   const base = `${SUPABASE_URL}/rest/v1/positions`;
 
   if (req.method === 'GET') {
-    const r = await fetch(`${base}?user_id=eq.${coordId}&order=created_at.asc`, { headers });
+    const r = await fetch(`${base}?user_id=eq.${coordId}&tipo=eq.reto&order=created_at.asc`, { headers });
     return res.status(200).json(await r.json());
   }
 
   if (req.method === 'POST') {
-    const body = { ...req.body, user_id: coordId };
+    const body = { ...req.body, user_id: coordId, tipo: 'reto' };
     const r = await fetch(base, { method: 'POST', headers, body: JSON.stringify(body) });
     return res.status(201).json(await r.json());
   }
