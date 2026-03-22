@@ -797,7 +797,7 @@ function render(){
         <td class="units">${p.totalUnidades}</td>
         <td class="price">${fmt$(p.ppp)}</td>
         <td>${fmt$(p.totalInvertido)}</td>
-        <td class="price ${p.valorActual>=p.ppp?'pnl-pos':'pnl-neg'}">${fmt$(p.valorActual)}</td>
+        <td class="price ${p.valorActual>=p.ppp?'pnl-pos':'pnl-neg'}">${p.estado==='cerrada'&&p.pVenta?fmt$(p.pVenta):fmt$(p.valorActual)}</td>
         <td>${p.pVenta?fmt$(p.pVenta):'<span class="pnl-zero">—</span>'}</td>
         <td>${pnlHtml(p.pnlPct,true)}</td>
         <td>${pnlHtml(p.pnlUSD)}</td>
