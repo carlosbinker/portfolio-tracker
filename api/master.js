@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   const headers = {
     'apikey': SUPABASE_KEY,
-    'Authorization': `Bearer ${SUPABASE_KEY}`, // service role para leer coordinador
+    'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'
   };
 
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   const positions = await posRes.json();
 
   return res.status(200).json({
-    coordinator: { name: coordinator.alias || coordinator.email },
+    coordinator: { name: coordinator.alias || 'Coordinador' },
     positions: positions || []
   });
 }
