@@ -571,8 +571,8 @@ async function loadMasterPortfolio() {
     // Render master positions
     const positions = (data.positions || []).map(p => ({
       id: p.id, ticker: p.ticker, estado: p.estado,
-      valorActual: p.valor_actual, pVenta: p.p_venta,
-      notas: p.notas || '', tramos: p.tramos || []
+      valorActual: p.valor_actual||0,
+      pVenta: p.p_venta, notas: p.notas || '', tramos: p.tramos || []
     }));
 
     const all = positions.map(calcPos);
@@ -610,7 +610,7 @@ async function loadMasterPortfolio() {
         <td class="units">${p.totalUnidades}</td>
         <td class="price">${fmt$(p.ppp)}</td>
         <td>${fmt$(p.totalInvertido)}</td>
-        <td class="price ${p.valorActual>=p.ppp?'pnl-pos':'pnl-neg'}">${fmt$(p.valorActual)}</td>
+        <td class="price ${p.valorActual>=p.ppp?'pnl-pos':'pnl-neg'}">${p.valorActual?fmt$(p.valorActual):'<span class="pnl-zero">—</span>'}</td>
         <td>${p.pVenta?fmt$(p.pVenta):'<span class="pnl-zero">—</span>'}</td>
         <td>${pnlHtml(p.pnlPct,true)}</td>
         <td>${pnlHtml(p.pnlUSD)}</td>
@@ -638,7 +638,7 @@ async function loadPositions() {
       id: p.id,
       ticker: p.ticker,
       estado: p.estado,
-      valorActual: p.valor_actual,
+      valorActual: p.valor_actual||0,
       pVenta: p.p_venta,
       notas: p.notas || '',
       tramos: p.tramos || []
@@ -797,7 +797,7 @@ function render(){
         <td class="units">${p.totalUnidades}</td>
         <td class="price">${fmt$(p.ppp)}</td>
         <td>${fmt$(p.totalInvertido)}</td>
-        <td class="price ${p.valorActual>=p.ppp?'pnl-pos':'pnl-neg'}">${fmt$(p.valorActual)}</td>
+        <td class="price ${p.valorActual>=p.ppp?'pnl-pos':'pnl-neg'}">${p.valorActual?fmt$(p.valorActual):'<span class="pnl-zero">—</span>'}</td>
         <td>${p.pVenta?fmt$(p.pVenta):'<span class="pnl-zero">—</span>'}</td>
         <td>${pnlHtml(p.pnlPct,true)}</td>
         <td>${pnlHtml(p.pnlUSD)}</td>
@@ -839,10 +839,10 @@ function render(){
 
   // tfoot
   const all=positions.map(calcPos);
-  const totInv=abiertas.reduce((s,p)=>s+p.totalInvertido,0);
   const abiertas=all.filter(p=>p.estado==='abierta');
   const cerradas=all.filter(p=>p.estado==='cerrada');
   const totValor=abiertas.reduce((s,p)=>s+p.valorTotal,0);
+  const totInv=abiertas.reduce((s,p)=>s+p.totalInvertido,0);
 
   // PnL Total = solo posiciones abiertas
   const totPnL=abiertas.reduce((s,p)=>s+p.pnlUSD,0);
@@ -961,8 +961,8 @@ async function loadRetoReadonly() {
     const data = await res.json();
     positions = (data.positions || []).map(p => ({
       id: p.id, ticker: p.ticker, estado: p.estado,
-      valorActual: p.valor_actual, pVenta: p.p_venta,
-      notas: p.notas || '', tramos: p.tramos || []
+      valorActual: p.valor_actual||0,
+      pVenta: p.p_venta, notas: p.notas || '', tramos: p.tramos || []
     }));
     render();
     fetchQuotes();
@@ -991,8 +991,8 @@ async function loadMasterManage() {
     const data = await apiCallMaster('GET');
     positions = (data || []).map(p => ({
       id: p.id, ticker: p.ticker, estado: p.estado,
-      valorActual: p.valor_actual, pVenta: p.p_venta,
-      notas: p.notas || '', tramos: p.tramos || []
+      valorActual: p.valor_actual||0,
+      pVenta: p.p_venta, notas: p.notas || '', tramos: p.tramos || []
     }));
     render();
     fetchQuotes();
