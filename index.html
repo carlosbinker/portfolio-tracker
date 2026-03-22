@@ -312,32 +312,55 @@
 <script>
 const INITIAL_CAPITAL = 10000;
 
-// ── migración de formato viejo ──
-function migrate(raw) {
-  return raw.map(p => {
-    if(p.tramos) return p;
-    return { id:p.id, ticker:p.ticker, estado:p.estado, valorActual:p.valorActual, pVenta:p.pVenta||null, notas:p.notas||'',
-      tramos:[{fecha:p.fechaApertura, unidades:p.unidades, precio:p.ppCompra}] };
-  });
+// ── Estado global ──
+let positions = [];
+let userId = localStorage.getItem('pt_user_id');
+if (!userId) {
+  userId = 'user_' + Math.random().toString(36).slice(2, 10);
+  localStorage.setItem('pt_user_id', userId);
 }
 
-let positions = migrate(JSON.parse(localStorage.getItem('pt_positions')||'null') || [
-  {id:1,ticker:'FBL', estado:'abierta',valorActual:26.31,pVenta:null,notas:'',tramos:[{fecha:'2026-01-06',unidades:3,   precio:31.96}]},
-  {id:2,ticker:'MSFL',estado:'abierta',valorActual:16.92,pVenta:null,notas:'',tramos:[{fecha:'2026-01-07',unidades:7,   precio:19.50},{fecha:'2026-02-10',unidades:7,precio:23.64}]},
-  {id:3,ticker:'NFXL',estado:'abierta',valorActual:27.79,pVenta:null,notas:'',tramos:[{fecha:'2026-01-08',unidades:3,   precio:28.35}]},
-  {id:4,ticker:'UGL', estado:'abierta',valorActual:60.92,pVenta:null,notas:'',tramos:[{fecha:'2026-01-08',unidades:2,   precio:58.54}]},
-  {id:5,ticker:'UTSL',estado:'cerrada',valorActual:50.73,pVenta:51.46,notas:'',tramos:[{fecha:'2026-01-15',unidades:3,  precio:42.39}]},
-  {id:6,ticker:'PLTU',estado:'abierta',valorActual:51.69,pVenta:null,notas:'',tramos:[{fecha:'2026-01-29',unidades:2,   precio:52.32}]},
-  {id:7,ticker:'AMZU',estado:'abierta',valorActual:27.38,pVenta:null,notas:'',tramos:[{fecha:'2026-02-09',unidades:4,   precio:27.39}]},
-  {id:8,ticker:'AGQ', estado:'abierta',valorActual:111.69,pVenta:null,notas:'',tramos:[{fecha:'2026-02-09',unidades:2,  precio:123.71}]},
-  {id:9,ticker:'KORU',estado:'abierta',valorActual:397.75,pVenta:null,notas:'',tramos:[{fecha:'2026-03-11',unidades:0.05,precio:390.00}]},
-]);
-
-let nextId = Math.max(...positions.map(p=>p.id),0)+1;
 let filterState='todas', sortField=null, sortAsc=true, editingId=null;
 let expanded = new Set();
+let isLoading = false;
 
-function save(){ localStorage.setItem('pt_positions',JSON.stringify(positions)); }
+// ── API Supabase via backend ──
+async function apiCall(method, body=null, id=null) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', 'x-user-id': userId }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const url = id ? `/api/positions?id=${id}` : '/api/positions';
+  const res = await fetch(url, opts);
+  if (method === 'DELETE' || res.status === 204) return null;
+  return res.json();
+}
+
+async function loadPositions() {
+  setStatus('Cargando posiciones…', 'loading');
+  try {
+    const data = await apiCall('GET');
+    positions = (data || []).map(p => ({
+      id: p.id,
+      ticker: p.ticker,
+      estado: p.estado,
+      valorActual: p.valor_actual,
+      pVenta: p.p_venta,
+      notas: p.notas || '',
+      tramos: p.tramos || []
+    }));
+    render();
+    fetchQuotes();
+  } catch(e) {
+    console.error('Error cargando posiciones:', e);
+    setStatus('Error cargando datos', 'error');
+  }
+}
+
+async function save() {
+  // no-op: saves happen individually via API
+}
 
 // ── Cálculos ──
 function pppCalc(tramos){
@@ -410,11 +433,16 @@ async function fetchQuotes(){
   }
 
   retryCount=0; let updated=0, notFound=[];
+  const updatePromises=[];
   quotes.forEach(q=>{ const pr=q.regularMarketPrice; if(pr==null) return;
-    positions.forEach(p=>{ if(p.ticker.toUpperCase()===q.symbol.toUpperCase()&&p.estado==='abierta'){ p.valorActual=Math.round(pr*10000)/10000; updated++; } }); });
+    positions.forEach(p=>{ if(p.ticker.toUpperCase()===q.symbol.toUpperCase()&&p.estado==='abierta'){
+      p.valorActual=Math.round(pr*10000)/10000; updated++;
+      updatePromises.push(apiCall('PUT',{id:p.id,valor_actual:p.valorActual}));
+    }});
+  });
   tickers.forEach(t=>{ if(!quotes.find(q=>q.symbol?.toUpperCase()===t.toUpperCase())) notFound.push(t); });
-
-  save(); lastFetch=new Date(); render();
+  await Promise.all(updatePromises);
+  lastFetch=new Date(); render();
   const ts=lastFetch.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   setStatus(notFound.length?`↑ ${ts} — no encontrados: ${notFound.join(', ')}`:`↑ ${ts} — ${updated} ticker${updated!==1?'s':''} actualizado${updated!==1?'s':''}`, notFound.length?'error':'ok');
 
@@ -657,7 +685,7 @@ function openModal(id=null){
 }
 function closeModal(){ document.getElementById('modal-overlay').classList.remove('open'); editingId=null; }
 
-function savePosition(){
+async function savePosition(){
   const ticker=document.getElementById('f-ticker').value.trim().toUpperCase();
   const estado=document.getElementById('f-estado').value;
   const actual=parseFloat(document.getElementById('f-actual').value);
@@ -674,15 +702,38 @@ function savePosition(){
     tramos.push({fecha,unidades:u,precio:pr});
   }
   if(!tramos.length){alert('Completá al menos el 1° DCA');return;}
-  const pos={id:editingId||nextId++,ticker,estado,valorActual:actual,pVenta:venta,notas,tramos};
-  if(editingId) positions[positions.findIndex(p=>p.id===editingId)]=pos;
-  else positions.push(pos);
-  save(); closeModal(); render();
+  const payload = {
+    ticker, estado,
+    valor_actual: actual,
+    p_venta: venta,
+    notas, tramos
+  };
+  try {
+    if(editingId) {
+      await apiCall('PUT', { id: editingId, ...payload });
+    } else {
+      await apiCall('POST', payload);
+    }
+    closeModal();
+    await loadPositions();
+  } catch(e) {
+    alert('Error guardando posición');
+    console.error(e);
+  }
 }
 
 function editPos(id){ openModal(id); }
-function deletePos(id){
-  if(confirm('¿Eliminar esta posición?')){ positions=positions.filter(p=>p.id!==id); expanded.delete(id); save(); render(); }
+async function deletePos(id){
+  if(confirm('¿Eliminar esta posición?')){
+    try {
+      await apiCall('DELETE', null, id);
+      expanded.delete(id);
+      await loadPositions();
+    } catch(e) {
+      alert('Error eliminando posición');
+      console.error(e);
+    }
+  }
 }
 
 // ── CSV ──
@@ -708,7 +759,7 @@ function clock(){
 setInterval(clock,1000); clock();
 document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
-render(); fetchQuotes(); startAutoRefresh();
+loadPositions(); startAutoRefresh();
 </script>
 </body>
 </html>
