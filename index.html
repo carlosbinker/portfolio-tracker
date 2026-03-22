@@ -239,8 +239,8 @@
           <select id="f-estado"><option value="abierta">Abierta</option><option value="cerrada">Cerrada</option></select>
         </div>
         <div class="form-group">
-          <label>Precio Actual *</label>
-          <input type="number" id="f-actual" placeholder="0.00" step="any" min="0">
+          <label>Precio Actual</label>
+          <input type="number" id="f-actual" placeholder="Auto (Yahoo Finance)" step="any" min="0">
           <span class="form-hint">Se actualiza automáticamente al guardar</span>
         </div>
         <div class="form-group">
@@ -688,10 +688,10 @@ function closeModal(){ document.getElementById('modal-overlay').classList.remove
 async function savePosition(){
   const ticker=document.getElementById('f-ticker').value.trim().toUpperCase();
   const estado=document.getElementById('f-estado').value;
-  const actual=parseFloat(document.getElementById('f-actual').value);
+  const actual=parseFloat(document.getElementById('f-actual').value)||0;
   const venta=parseFloat(document.getElementById('f-venta').value)||null;
   const notas=document.getElementById('f-notas').value.trim();
-  if(!ticker||isNaN(actual)){alert('Completá Ticker y Precio Actual');return;}
+  if(!ticker){alert('Completá el Ticker');return;}
   const tramos=[];
   for(let n=1;n<=3;n++){
     if(n>1&&document.getElementById(`fields-dca${n}`).classList.contains('hidden')) continue;
