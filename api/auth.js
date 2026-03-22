@@ -38,7 +38,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({ alias: alias.trim() })
       });
     }
-    return res.status(200).json({ user: data.user, token: data.access_token, alias: alias?.trim() || null });
+    return res.status(200).json({ user: data.user, token: data.access_token, alias: alias?.trim() || null, rol: 'usuario' });
   }
 
   if (action === 'login') {
@@ -53,16 +53,18 @@ export default async function handler(req, res) {
     if (!data.access_token) {
       return res.status(400).json({ error: 'Email o contraseña incorrectos' });
     }
-    // Buscar alias del usuario
+    // Buscar alias y rol del usuario
     let alias = null;
+    let rol = 'usuario';
     if (data.user?.id) {
-      const pr = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${data.user.id}&select=alias`, {
+      const pr = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${data.user.id}&select=alias,rol`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${data.access_token}` }
       });
       const profile = await pr.json();
       alias = profile?.[0]?.alias || null;
+      rol = profile?.[0]?.rol || 'usuario';
     }
-    return res.status(200).json({ user: data.user, token: data.access_token, alias });
+    return res.status(200).json({ user: data.user, token: data.access_token, alias, rol });
   }
 
   return res.status(400).json({ error: 'Acción no válida' });
