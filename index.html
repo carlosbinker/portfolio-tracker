@@ -169,6 +169,24 @@
   @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
   tr.row-summary{animation:fadeIn 0.18s ease both;}
 
+  /* ── PORTFOLIO MAESTRO ── */
+  .master-section { margin-bottom: 20px; border: 1px solid var(--border2); }
+  .master-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--surface); cursor:pointer; user-select:none; transition:background 0.15s; }
+  .master-header:hover { background:var(--surface2); }
+  .master-title { display:flex; align-items:center; gap:10px; }
+  .master-badge { font-size:9px; letter-spacing:0.12em; text-transform:uppercase; font-weight:600; padding:3px 10px; background:rgba(232,184,75,0.1); color:var(--yellow); border:1px solid rgba(232,184,75,0.25); }
+  .master-name { font-family:var(--sans); font-size:13px; font-weight:600; color:var(--text-hi); }
+  .master-toggle { font-size:11px; color:var(--text-muted); transition:transform 0.2s; }
+  .master-toggle.open { transform:rotate(180deg); }
+  .master-body { display:none; padding:0; }
+  .master-body.open { display:block; }
+  .master-kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; padding:12px 16px; background:rgba(6,9,13,0.4); border-bottom:1px solid var(--border); }
+  .master-kpi { padding:10px 12px; background:var(--surface); border:1px solid var(--border); position:relative; overflow:hidden; }
+  .master-kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+  .master-kpi.neutral::before{background:var(--text-muted);} .master-kpi.positive::before{background:var(--green);}
+  .master-kpi.negative::before{background:var(--red);} .master-kpi.info::before{background:var(--blue);} .master-kpi.warn::before{background:var(--yellow);}
+  .master-readonly { font-size:9px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; padding:6px 16px; background:rgba(232,184,75,0.04); border-bottom:1px solid var(--border); }
+
   /* ── RESPONSIVE MOBILE ── */
   @media (max-width: 768px) {
     .app { padding: 12px; }
@@ -272,6 +290,31 @@
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;"><div class="header-date"><strong id="current-date"></strong><span id="current-time"></span></div><div style="display:flex;align-items:center;gap:10px;"><span class="auth-user" id="user-email"></span><button class="btn" onclick="logout()" style="padding:4px 12px;font-size:9.5px;">Salir</button></div></div>
   </header>
+
+  <!-- Portfolio Maestro -->
+  <div class="master-section" id="master-section" style="display:none;">
+    <div class="master-header" onclick="toggleMaster()">
+      <div class="master-title">
+        <span class="master-badge">Portfolio Maestro</span>
+        <span class="master-name" id="master-name"></span>
+      </div>
+      <span class="master-toggle" id="master-toggle">▼</span>
+    </div>
+    <div class="master-body" id="master-body">
+      <div class="master-readonly">Solo lectura — referencia del coordinador</div>
+      <div class="master-kpis" id="master-kpis"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Ticker</th><th>Fecha Apertura</th><th>Estado</th><th>Días</th>
+            <th>Unidades</th><th>PP Compra</th><th>Total Compra</th>
+            <th>Valor Actual</th><th>Precio Venta</th><th>PnL(%)</th><th>PnL(USD)</th><th>DCA</th>
+          </tr></thead>
+          <tbody id="master-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
   <div class="kpi-grid" id="kpi-grid"></div>
 
@@ -488,7 +531,79 @@ async function apiCall(method, body=null, id=null) {
   return res.json();
 }
 
-async function loadPositions() {
+async function loadMasterPortfolio() {
+  try {
+    const res = await fetch('/api/master', {
+      headers: { 'Authorization': 'Bearer ' + authToken }
+    });
+    const data = await res.json();
+    if (!data.positions?.length && !data.coordinator) return;
+
+    const section = document.getElementById('master-section');
+    section.style.display = 'block';
+    document.getElementById('master-name').textContent = data.coordinator?.name || 'Coordinador';
+
+    // Render master positions
+    const positions = (data.positions || []).map(p => ({
+      id: p.id, ticker: p.ticker, estado: p.estado,
+      valorActual: p.valor_actual, pVenta: p.p_venta,
+      notas: p.notas || '', tramos: p.tramos || []
+    }));
+
+    const all = positions.map(calcPos);
+    const abiertas = all.filter(p => p.estado === 'abierta');
+    const cerradas = all.filter(p => p.estado === 'cerrada');
+    const totInv = all.reduce((s,p) => s+p.totalInvertido, 0);
+    const invAbiertas = abiertas.reduce((s,p) => s+p.totalInvertido, 0);
+    const gananciaRealizada = cerradas.reduce((s,p) => s+p.pnlUSD, 0);
+    const liquidez = INITIAL_CAPITAL - invAbiertas + gananciaRealizada;
+    const baseCapital = INITIAL_CAPITAL + gananciaRealizada;
+    const liqPct = (liquidez / baseCapital) * 100;
+    const pnlAbiertas = abiertas.reduce((s,p) => s+p.pnlUSD, 0);
+    const portfolioTotal = INITIAL_CAPITAL + pnlAbiertas;
+    const gananciaRzPct = baseCapital > 0 ? (gananciaRealizada / baseCapital) * 100 : 0;
+    const grC = gananciaRealizada >= 0 ? 'positive' : 'negative';
+    const pnlC = pnlAbiertas >= 0 ? 'positive' : 'negative';
+
+    document.getElementById('master-kpis').innerHTML = [
+      {l:'Capital Inicial', v:fmt$(INITIAL_CAPITAL), c:'neutral', s:'Base de referencia'},
+      {l:'Invertido Activo', v:fmt$(invAbiertas), c:'info', s:`${abiertas.length} posic. abiertas`},
+      {l:'Liquidez', v:fmtPct(liqPct), c:liqPct>=50?'positive':'warn', s:fmt$(liquidez)},
+      {l:'Portfolio Total', v:fmt$(portfolioTotal), c:'info', s:'Capital inicial + PnL'},
+    ].map(k=>`<div class="master-kpi ${k.c}"><div class="kpi-label">${k.l}</div><div class="kpi-value ${k.c}">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('')
+    + `<div class="master-kpi ${pnlC}"><div class="kpi-label">PnL Total</div><div class="kpi-value-row"><span class="kpi-value ${pnlC}">${(pnlAbiertas>=0?'+':'-')+fmt$(pnlAbiertas)}</span><span class="kpi-pct ${pnlC}">${invAbiertas>0?fmtPct(pnlAbiertas/invAbiertas*100):''}</span></div><div class="kpi-sub">Solo posiciones abiertas</div></div>`
+    + `<div class="master-kpi ${grC}"><div class="kpi-label">Ganancia</div><div class="kpi-value-row"><span class="kpi-value ${grC}">${(gananciaRealizada>=0?'+':'-')+fmt$(gananciaRealizada)}</span><span class="kpi-pct ${grC}">${fmtPct(gananciaRzPct)}</span></div><div class="kpi-sub">${cerradas.length} pos. cerrada${cerradas.length!==1?'s':''} · ${fmt$(invAbiertas)}</div></div>`;
+
+    // Render master table
+    let html = '';
+    all.forEach(p => {
+      html += `<tr class="row-summary ${p.estado}">
+        <td><span class="ticker">${p.ticker}</span></td>
+        <td><span class="date">${fmtDate(p.fechaApertura)}</span></td>
+        <td><span class="badge ${p.estado}">${p.estado.toUpperCase()}</span></td>
+        <td>${p.dias}</td>
+        <td class="units">${p.totalUnidades}</td>
+        <td class="price">${fmt$(p.ppp)}</td>
+        <td>${fmt$(p.totalInvertido)}</td>
+        <td class="price ${p.valorActual>=p.ppp?'pnl-pos':'pnl-neg'}">${fmt$(p.valorActual)}</td>
+        <td>${p.pVenta?fmt$(p.pVenta):'<span class="pnl-zero">—</span>'}</td>
+        <td>${pnlHtml(p.pnlPct,true)}</td>
+        <td>${pnlHtml(p.pnlUSD)}</td>
+        <td>${p.tramos.length>1?`<span class="dca-count">${p.tramos.length} entradas</span>`:dcaBadge(1)}</td>
+      </tr>`;
+    });
+    document.getElementById('master-tbody').innerHTML = html || '<tr class="empty-row"><td colspan="12">Sin posiciones</td></tr>';
+  } catch(e) {
+    console.error('Error cargando portfolio maestro:', e);
+  }
+}
+
+function toggleMaster() {
+  const body = document.getElementById('master-body');
+  const toggle = document.getElementById('master-toggle');
+  body.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
   setStatus('Cargando posiciones…', 'loading');
   try {
     const data = await apiCall('GET');
@@ -503,6 +618,7 @@ async function loadPositions() {
     }));
     render();
     fetchQuotes();
+    loadMasterPortfolio();
   } catch(e) {
     console.error('Error cargando posiciones:', e);
     setStatus('Error cargando datos', 'error');
