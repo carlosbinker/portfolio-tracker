@@ -291,6 +291,8 @@
   .auth-box input { width:100%; margin-bottom:14px; padding:12px 14px; font-size:13px; }
   .auth-box .btn { width:100%; margin-top:6px; padding:13px; font-size:13px; letter-spacing:0.1em; }
   #auth-error { color:var(--red); font-size:11px; margin-top:10px; min-height:16px; }
+  .reset-form { display:none; }
+  .reset-form.active { display:block; }
   .auth-user { font-family:var(--sans); font-size:12px; color:var(--yellow); font-weight:700; letter-spacing:0.04em; }
 </style>
 </head>
@@ -317,6 +319,18 @@
     <div style="margin-top:16px;text-align:center;">
       <button onclick="showForgotPassword()" style="background:none;border:none;color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">¿Olvidaste tu contraseña?</button>
     </div>
+  </div>
+
+  <!-- Reset Password Form (shown when recovery token detected in URL) -->
+  <div class="auth-box reset-form" id="reset-password-form">
+    <div style="margin-bottom:24px;display:flex;flex-direction:column;align-items:center;gap:14px;">
+      <h2>NUEVA CONTRASEÑA</h2>
+      <p>Ingresá tu nueva contraseña</p>
+    </div>
+    <input type="password" id="new-password" placeholder="Nueva contraseña" onkeydown="if(event.key==='Enter')submitNewPassword()">
+    <input type="password" id="new-password-confirm" placeholder="Confirmá la contraseña" onkeydown="if(event.key==='Enter')submitNewPassword()">
+    <button class="btn primary" onclick="submitNewPassword()" style="width:100%;margin-top:6px;padding:13px;font-size:13px;">Cambiar Contraseña</button>
+    <div id="reset-error" style="color:var(--red);font-size:11px;margin-top:10px;min-height:16px;"></div>
   </div>
 </div>
 
@@ -1050,6 +1064,64 @@ function initCoordinatorUI() {
   }
 }
 
+// ── Password Recovery ──
+let recoveryToken = null;
+
+function checkRecoveryToken() {
+  const hash = window.location.hash;
+  if (!hash) return false;
+  const params = new URLSearchParams(hash.replace('#', ''));
+  const type = params.get('type');
+  const token = params.get('access_token');
+  if (type === 'recovery' && token) {
+    recoveryToken = token;
+    // Hide auth overlay, show reset form
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.getElementById('reset-password-form').classList.add('active');
+    document.getElementById('reset-password-form').style.display = 'flex';
+    document.getElementById('reset-password-form').style.flexDirection = 'column';
+    document.getElementById('reset-password-form').style.alignItems = 'center';
+    document.getElementById('reset-password-form').style.justifyContent = 'center';
+    document.getElementById('reset-password-form').style.position = 'fixed';
+    document.getElementById('reset-password-form').style.inset = '0';
+    document.getElementById('reset-password-form').style.background = 'var(--bg)';
+    document.getElementById('reset-password-form').style.zIndex = '3000';
+    // Clear URL hash
+    history.replaceState(null, '', window.location.pathname);
+    return true;
+  }
+  return false;
+}
+
+async function submitNewPassword() {
+  const pwd = document.getElementById('new-password').value;
+  const pwd2 = document.getElementById('new-password-confirm').value;
+  const errEl = document.getElementById('reset-error');
+  errEl.textContent = '';
+
+  if (!pwd || pwd.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; return; }
+  if (pwd !== pwd2) { errEl.textContent = 'Las contraseñas no coinciden'; return; }
+
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update-password', token: recoveryToken, password: pwd })
+    });
+    const data = await res.json();
+    if (data.error) { errEl.textContent = data.error; return; }
+
+    // Success - hide reset form, show login
+    document.getElementById('reset-password-form').style.display = 'none';
+    document.getElementById('reset-password-form').classList.remove('active');
+    recoveryToken = null;
+    alert('¡Contraseña actualizada! Ya podés iniciar sesión.');
+    document.getElementById('auth-overlay').style.display = 'flex';
+  } catch(e) {
+    errEl.textContent = 'Error de conexión';
+  }
+}
+
 // ── Session Timer ──
 let sessionTimer = null;
 let sessionWarningTimer = null;
@@ -1287,7 +1359,9 @@ setInterval(clock,1000); clock();
 document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
 // ── Init ──
-if (authToken) {
+if (checkRecoveryToken()) {
+  // Recovery flow - handled by checkRecoveryToken
+} else if (authToken) {
   document.getElementById('auth-overlay').style.display = 'none';
   const savedAlias = localStorage.getItem('pt_alias');
   document.getElementById('user-email').textContent = savedAlias || authUser?.email || authUser?.user_metadata?.email || '';

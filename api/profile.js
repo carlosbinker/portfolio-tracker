@@ -9,6 +9,24 @@ export default async function handler(req, res) {
 
   const { action } = req.body;
 
+  // Update password with recovery token
+  if (action === 'update-password') {
+    const { token: recoveryToken, password: newPassword } = req.body;
+    if (!recoveryToken || !newPassword) return res.status(400).json({ error: 'Token y contraseña requeridos' });
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${recoveryToken}`
+      },
+      body: JSON.stringify({ password: newPassword })
+    });
+    const data = await r.json();
+    if (data.error) return res.status(400).json({ error: data.error.message || 'Error al cambiar contraseña' });
+    return res.status(200).json({ ok: true });
+  }
+
   // Reset password - no token needed, just email
   if (action === 'reset-password') {
     const { email } = req.body;
