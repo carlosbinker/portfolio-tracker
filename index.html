@@ -1366,7 +1366,7 @@ function exportCSV(){
 function clock(){
   const n=new Date();
   document.getElementById('current-date').textContent=n.toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('current-time').textContent=n.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('current-time').textContent=n.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
 }
 setInterval(clock,1000); clock();
 document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
