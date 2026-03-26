@@ -603,6 +603,10 @@ function logout() {
   authToken = null; authUser = null; positions = [];
   render();
   document.getElementById('user-email').textContent = '';
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-alias').value = '';
+  document.getElementById('auth-error').textContent = '';
   document.getElementById('auth-overlay').style.display = 'flex';
 }
 
@@ -1164,6 +1168,9 @@ function startSessionTimer() {
     authToken = null; authUser = null; positions = [];
     render();
     document.getElementById('user-email').textContent = '';
+    document.getElementById('auth-email').value = '';
+    document.getElementById('auth-password').value = '';
+    document.getElementById('auth-alias').value = '';
     document.getElementById('auth-overlay').style.display = 'flex';
     // Mostrar mensaje en el formulario de login
     document.getElementById('auth-error').textContent = 'Tu sesión expiró. Por favor volvé a iniciar sesión.';
