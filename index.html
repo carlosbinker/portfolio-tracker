@@ -311,13 +311,26 @@
       <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Ingresar</button>
       <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Registrarse</button>
     </div>
-    <input type="email" id="auth-email" placeholder="Email" onkeydown="if(event.key==='Enter')handleAuth()">
-    <input type="password" id="auth-password" placeholder="Contraseña" onkeydown="if(event.key==='Enter')handleAuth()">
-    <input type="text" id="auth-alias" placeholder="Nombre / Alias (opcional)" style="display:none;" onkeydown="if(event.key==='Enter')handleAuth()">
-    <button class="btn primary" id="auth-btn" onclick="handleAuth()">Ingresar</button>
-    <div id="auth-error"></div>
-    <div style="margin-top:16px;text-align:center;">
-      <button onclick="showForgotPassword()" style="background:none;border:none;color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">¿Olvidaste tu contraseña?</button>
+    <!-- Panel: Login / Register -->
+    <div id="auth-login-panel">
+      <input type="email" id="auth-email" placeholder="Email" onkeydown="if(event.key==='Enter')handleAuth()">
+      <input type="password" id="auth-password" placeholder="Contraseña" onkeydown="if(event.key==='Enter')handleAuth()">
+      <input type="text" id="auth-alias" placeholder="Nombre / Alias (opcional)" style="display:none;" onkeydown="if(event.key==='Enter')handleAuth()">
+      <button class="btn primary" id="auth-btn" onclick="handleAuth()">Ingresar</button>
+      <div id="auth-error"></div>
+      <div style="margin-top:16px;text-align:center;">
+        <button onclick="showForgotPassword()" style="background:none;border:none;color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">¿Olvidaste tu contraseña?</button>
+      </div>
+    </div>
+    <!-- Panel: Recuperar contraseña -->
+    <div id="auth-forgot-panel" style="display:none;">
+      <p style="color:var(--text-muted);font-size:11px;margin-bottom:16px;text-transform:none;letter-spacing:0;">Ingresá tu email y te enviaremos un link para restablecer tu contraseña.</p>
+      <input type="email" id="forgot-email" placeholder="Email" onkeydown="if(event.key==='Enter')submitForgotPassword()">
+      <button class="btn primary" onclick="submitForgotPassword()" style="width:100%;margin-top:6px;padding:13px;font-size:13px;">Enviar link</button>
+      <div id="forgot-msg" style="font-size:11px;margin-top:10px;min-height:16px;"></div>
+      <div style="margin-top:16px;text-align:center;">
+        <button onclick="hideForgotPassword()" style="background:none;border:none;color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">← Volver al login</button>
+      </div>
     </div>
   </div>
 
@@ -607,6 +620,8 @@ function logout() {
   document.getElementById('auth-password').value = '';
   document.getElementById('auth-alias').value = '';
   document.getElementById('auth-error').textContent = '';
+  document.getElementById('auth-forgot-panel').style.display = 'none';
+  document.getElementById('auth-login-panel').style.display = 'block';
   document.getElementById('auth-overlay').style.display = 'flex';
 }
 
@@ -1171,6 +1186,8 @@ function startSessionTimer() {
     document.getElementById('auth-email').value = '';
     document.getElementById('auth-password').value = '';
     document.getElementById('auth-alias').value = '';
+    document.getElementById('auth-forgot-panel').style.display = 'none';
+    document.getElementById('auth-login-panel').style.display = 'block';
     document.getElementById('auth-overlay').style.display = 'flex';
     // Mostrar mensaje en el formulario de login
     document.getElementById('auth-error').textContent = 'Tu sesión expiró. Por favor volvé a iniciar sesión.';
@@ -1213,21 +1230,37 @@ async function saveAlias() {
 
 
 function showForgotPassword() {
-  document.getElementById('auth-overlay').style.display = 'none';
-  // Show a simple prompt
-  const email = prompt('Ingresá tu email para recuperar la contraseña:');
-  if (!email) { document.getElementById('auth-overlay').style.display = 'flex'; return; }
-  fetch('/api/profile', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'reset-password', email })
-  }).then(() => {
-    alert(`Email de recuperación enviado a ${email}`);
-  }).catch(() => {
-    alert('Error al enviar el email');
-  }).finally(() => {
-    document.getElementById('auth-overlay').style.display = 'flex';
-  });
+  document.getElementById('auth-login-panel').style.display = 'none';
+  document.getElementById('auth-forgot-panel').style.display = 'block';
+  document.getElementById('forgot-email').value = '';
+  document.getElementById('forgot-msg').textContent = '';
+  document.getElementById('forgot-msg').style.color = '';
+  setTimeout(() => document.getElementById('forgot-email').focus(), 50);
+}
+
+function hideForgotPassword() {
+  document.getElementById('auth-forgot-panel').style.display = 'none';
+  document.getElementById('auth-login-panel').style.display = 'block';
+}
+
+async function submitForgotPassword() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const msg = document.getElementById('forgot-msg');
+  msg.textContent = '';
+  if (!email) { msg.style.color = 'var(--red)'; msg.textContent = 'Ingresá tu email'; return; }
+  try {
+    await fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reset-password', email })
+    });
+    msg.style.color = 'var(--green)';
+    msg.textContent = `Link enviado a ${email}. Revisá tu bandeja.`;
+    setTimeout(() => hideForgotPassword(), 3000);
+  } catch {
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Error al enviar el email';
+  }
 }
 
 
