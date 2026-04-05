@@ -294,6 +294,10 @@
   .reset-form { display:none; }
   .reset-form.active { display:block; }
   .auth-user { font-family:var(--sans); font-size:12px; color:var(--yellow); font-weight:700; letter-spacing:0.04em; }
+  .pw-wrap { position:relative; margin-bottom:14px; }
+  .pw-wrap input { width:100%; margin-bottom:0; }
+  .pw-eye { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:15px; line-height:1; padding:4px; transition:color 0.15s; user-select:none; }
+  .pw-eye:hover { color:var(--text-hi); }
 </style>
 </head>
 <body>
@@ -314,7 +318,10 @@
     <!-- Panel: Login / Register -->
     <div id="auth-login-panel">
       <input type="email" id="auth-email" placeholder="Email" onkeydown="if(event.key==='Enter')handleAuth()">
-      <input type="password" id="auth-password" placeholder="Contraseña" onkeydown="if(event.key==='Enter')handleAuth()">
+      <div class="pw-wrap">
+        <input type="password" id="auth-password" placeholder="Contraseña" onkeydown="if(event.key==='Enter')handleAuth()">
+        <button class="pw-eye" type="button" onclick="togglePw('auth-password',this)" tabindex="-1" title="Mostrar/ocultar contraseña">👁</button>
+      </div>
       <input type="text" id="auth-alias" placeholder="Nombre / Alias (opcional)" style="display:none;" onkeydown="if(event.key==='Enter')handleAuth()">
       <button class="btn primary" id="auth-btn" onclick="handleAuth()">Ingresar</button>
       <div id="auth-error"></div>
@@ -341,8 +348,14 @@
         <h2>NUEVA CONTRASEÑA</h2>
         <p>Ingresá y confirmá tu nueva contraseña</p>
       </div>
-      <input type="password" id="new-password" placeholder="Nueva contraseña" onkeydown="if(event.key==='Enter')submitNewPassword()">
-      <input type="password" id="new-password-confirm" placeholder="Confirmá la contraseña" onkeydown="if(event.key==='Enter')submitNewPassword()">
+      <div class="pw-wrap">
+        <input type="password" id="new-password" placeholder="Nueva contraseña" onkeydown="if(event.key==='Enter')submitNewPassword()">
+        <button class="pw-eye" type="button" onclick="togglePw('new-password',this)" tabindex="-1" title="Mostrar/ocultar contraseña">👁</button>
+      </div>
+      <div class="pw-wrap">
+        <input type="password" id="new-password-confirm" placeholder="Confirmá la contraseña" onkeydown="if(event.key==='Enter')submitNewPassword()">
+        <button class="pw-eye" type="button" onclick="togglePw('new-password-confirm',this)" tabindex="-1" title="Mostrar/ocultar contraseña">👁</button>
+      </div>
       <button class="btn primary" onclick="submitNewPassword()" style="width:100%;margin-top:6px;padding:13px;font-size:13px;">Cambiar Contraseña</button>
       <div id="reset-error" style="color:var(--red);font-size:11px;margin-top:10px;min-height:16px;"></div>
     </div>
@@ -1400,6 +1413,15 @@ function exportCSV(){
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));
   a.download=`portfolio_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+}
+
+// ── Toggle contraseña visible ──
+function togglePw(inputId, btn){
+  const inp = document.getElementById(inputId);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
+  btn.style.opacity = show ? '1' : '0.6';
 }
 
 // ── Reloj ──
